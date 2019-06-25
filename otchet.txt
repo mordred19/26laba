@@ -1,0 +1,489 @@
+UDT.H
+#ifndef UDT_H
+#define UDT_H
+
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct _Item
+{
+	float _key;
+	char _str[31];
+} Item;
+
+typedef Item UDT_TYPE;
+
+typedef struct _Udt
+{
+	UDT_TYPE *_data;
+	int _capacity;
+	int _size;
+} Udt;
+
+void udtCreate(Udt *udt, const int Capacity);
+int udtPush(Udt *udt, const UDT_TYPE value);
+void udtPop(Udt *udt);
+UDT_TYPE udtTop(const Udt *udt);
+int udtSize(const Udt *udt);
+int udtCapacity(const Udt *udt);
+int udtEmpty(const Udt *udt);
+void udtPrint(Udt *udt);
+void udtDestroy(Udt *udt);
+
+#endif
+
+
+
+UDT.C
+#include "udt.h"
+
+void udtCreate(Udt *udt, const int capacity)
+{
+	int i;
+	UDT_TYPE item;
+
+	item._key = 0.0f;
+	item._str[0] = '\0';
+
+	if (capacity <= 0)
+	return;
+
+	udt->_data = (UDT_TYPE *)malloc(sizeof(UDT_TYPE) * capacity);
+
+	for (i = 0; i < capacity; i++)
+	udt->_data[i] = item;
+
+	udt->_capacity = capacity;
+	udt->_size = 0;
+}
+
+int udtPush(Udt *udt, const UDT_TYPE value)
+{
+	if (udt->_size == udt->_capacity)
+	return 0;
+
+	udt->_data[udt->_size++] = value;
+
+	return 1;
+}
+
+void udtPop(Udt *udt)
+{
+	if (udt->_size == 0)
+	return;
+
+	udt->_size--;
+}
+
+UDT_TYPE udtTop(const Udt *udt)
+{
+	return udt->_data[udt->_size - 1];
+}
+
+int udtSize(const Udt *udt)
+{
+	return udt->_size;
+}
+
+int udtEmpty(const Udt *udt)
+{
+	return udt->_size == 0;
+}
+
+void udtPrint(Udt *udt)
+{
+	int i;
+	Item item;
+
+	printf("+-------+------------+------------------------------+\n");
+	printf("| Номер |    Ключ    |             Строка           |\n");
+	printf("+-------+------------+------------------------------+\n");
+
+	for (i = 0; i < udtSize(udt); i++)
+	{
+		item = udt->_data[i];
+
+		printf("|%7d|%12.2f|%30s|\n", i + 1, item._key, item._str);
+	}
+
+	printf("+-------+------------+------------------------------+\n");
+}
+
+void udtDestroy(Udt *udt)
+{
+	if (udt->_data != NULL)
+	{
+		free(udt->_data);
+
+		udt->_data = NULL;
+	}
+
+	udt->_capacity = 0;
+	udt->_size = 0;
+}
+int udtCapacity(const Udt *udt)
+{
+	return udt->_capacity;
+}
+
+
+
+SORT.H
+#ifndef UDT_SORT_H
+#define UDT_SORT_H
+
+#include "udt.h"
+
+void udtSwap(Udt *udt1, Udt *udt2);
+void udtSelectionSort(Udt *udt);
+
+#endif
+
+
+SORT.C
+#include "sort.h"
+
+void udtSwap(Udt *udt1, Udt *udt2)
+{
+	Udt tmp;
+
+	tmp = *udt1;
+	*udt1 = *udt2;
+	*udt2 = tmp;
+}
+
+void udtSelectionSort(Udt *udt)
+{
+	const int cap = udtCapacity(udt);
+	Udt sorted, tmp, tmp1;
+	UDT_TYPE item;
+
+	if (cap < 2)
+	return;
+
+	udtCreate(&sorted, cap);
+	udtCreate(&tmp, cap);
+	udtCreate(&tmp1, cap);
+
+	while (!udtEmpty(udt))
+	{
+		udtPush(&tmp, udtTop(udt));
+		udtPop(udt);
+		while (!udtEmpty(udt))
+		{
+			item = udtTop(udt);
+			udtPop(udt);
+			if (item._key < udtTop(&tmp)._key)
+			{
+				udtPush(&tmp, item);
+			}
+			else
+				udtPush(&tmp1, item);				
+		}
+		udtPush(&sorted, udtTop(&tmp));
+		udtPop(&tmp);
+		
+		while(!udtEmpty(&tmp1))
+		{			
+			udtPush(&tmp, udtTop(&tmp1));
+			udtPop(&tmp1);			
+		}
+	
+		udtSwap(udt, &tmp);
+
+	}
+	udtSwap(udt, &sorted);
+	udtDestroy(&sorted);
+	udtDestroy(&tmp);
+	udtDestroy(&tmp1);
+}
+
+
+
+LAB25.C
+#include <stdio.h>
+#include "sort.h"
+
+void getLine(char *str, const int size);
+
+int main(void)
+{
+	const int N = 10;
+	int action;
+	char tmpCh;
+	Udt udt;
+	Item item;
+
+	udtCreate(&udt, N);
+
+	do
+	{
+		printf("Меню\n");
+		printf("1) Добавить элемент\n");
+		printf("2) Удалить элемент\n");
+		printf("3) Размер стека\n");
+		printf("4) Сортировка\n");
+		printf("5) Печать\n");
+		printf("6) Выход\n");
+		printf("Выберите действие: ");
+		scanf("%d", &action);
+
+		switch (action)
+		{
+			case 1:
+			{
+				printf("Введите ключ: ");
+				scanf("%f", &item._key);
+				scanf("%c", &tmpCh);
+				printf("Введите Строку: ");
+				getLine(item._str, sizeof(item._str));
+
+				if (udtPush(&udt, item))
+					printf("Элемент с ключом %f и строкой '%s' добавлен успешно\n", item._key, item._str);
+				else
+					printf("Стек полон\n");
+			}
+			break;
+
+		case 2:
+		{
+			if (udtSize(&udt) > 0)
+			{
+				item = udtTop(&udt);
+
+				udtPop(&udt);
+
+				printf("Элемент с ключом %f и строкой '%s' удален успешно\n", item._key, item._str);
+			}
+			else
+				printf("Стек пуст\n");
+		}
+		break;
+
+		case 3:
+		{
+			printf("Размер стека: %d (Возможный размер: %d)\n", udtSize(&udt), N);
+		}
+		break;
+
+		case 4:
+		{
+			udtSelectionSort(&udt);
+		
+		break;
+		}
+
+		case 5:
+		{
+			if (udtSize(&udt) > 0)
+			{
+				printf("Стек:\n");
+				udtPrint(&udt);
+			}
+			else
+				printf("Стек пуст\n");
+		}
+		break;
+
+		case 6: break;
+
+		default:
+		{
+			printf("Ошибка. Такого пункта меню не существует\n");
+		}
+		break;
+		}
+	}
+	while (action != 6);
+
+	udtDestroy(&udt);
+
+	return 0;
+}
+
+void getLine(char *str, const int size)
+{
+	int cnt = 0, ch;
+
+	while ((ch = getchar()) != '\n' && cnt < size - 1)
+	str[cnt++] = ch;
+
+	str[cnt] = '\0';
+}
+
+
+
+MAKEFILE
+CC = gcc
+CFLAGS = -std=c99 -pedantic -Wall -g
+OBJ = lab26.o udt.o sort.o
+PROG = program
+
+build: lab26.o sort.o udt.o
+	$(CC) $(CFLAGS) -o $(PROG) $(OBJ)
+
+lab26.o: lab26.c
+	$(CC) $(CFLAGS) -c lab26.c
+
+sort.o: sort.c
+	$(CC) $(CFLAGS) -c sort.c
+
+udt.o: udt.c
+	$(CC) $(CFLAGS) -c udt.c
+
+clean:
+	rm $(PROG) $(OBJ)
+
+
+
+PROTOCOL
+user1@comp:~/home/labs/26lab$ make
+gcc -std=c99 -pedantic -Wall -g -c lab26.c
+gcc -std=c99 -pedantic -Wall -g -c sort.c
+gcc -std=c99 -pedantic -Wall -g -c udt.c
+gcc -std=c99 -pedantic -Wall -g -o program lab26.o udt.o sort.o
+
+user1@comp:~/home/labs/26lab$ ./program
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 1
+Введите ключ: 666
+Введите Строку: 555
+Элемент с ключом 666.000000 и строкой '555' добавлен успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 1
+Введите ключ: 555
+Введите Строку: 666
+Элемент с ключом 555.000000 и строкой '666' добавлен успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 1
+Введите ключ: 555
+Введите Строку: 223223
+Элемент с ключом 555.000000 и строкой '223223' добавлен успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 1
+Введите ключ: 23552
+Введите Строку: 2365352
+Элемент с ключом 23552.000000 и строкой '2365352' добавлен успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 1
+Введите ключ: 2
+Введите Строку: 3
+Элемент с ключом 2.000000 и строкой '3' добавлен успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 1
+Введите ключ: 5646
+Введите Строку: 2232
+Элемент с ключом 5646.000000 и строкой '2232' добавлен успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 1
+Введите ключ: 6377
+Введите Строку: 13
+Элемент с ключом 6377.000000 и строкой '13' добавлен успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 5
+Стек:
++-------+------------+------------------------------+
+| Номер |    Ключ    |             Строка           |
++-------+------------+------------------------------+
+|      1|      666.00|                           555|
+|      2|      555.00|                           666|
+|      3|      555.00|                        223223|
+|      4|    23552.00|                       2365352|
+|      5|        2.00|                             3|
+|      6|     5646.00|                          2232|
+|      7|     6377.00|                            13|
++-------+------------+------------------------------+
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 4
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 5
+Стек:
++-------+------------+------------------------------+
+| Номер |    Ключ    |             Строка           |
++-------+------------+------------------------------+
+|      1|        2.00|                             3|
+|      2|      555.00|                        223223|
+|      3|      555.00|                           666|
+|      4|      666.00|                           555|
+|      5|     5646.00|                          2232|
+|      6|     6377.00|                            13|
+|      7|    23552.00|                       2365352|
++-------+------------+------------------------------+
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 2
+Элемент с ключом 23552.000000 и строкой '2365352' удален успешно
+Меню
+1) Добавить элемент
+2) Удалить элемент
+3) Размер стека
+4) Сортировка
+5) Печать
+6) Выход
+Выберите действие: 6
+
